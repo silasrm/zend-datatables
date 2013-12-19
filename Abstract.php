@@ -23,12 +23,11 @@ abstract class Application_Model_Abstract {
         	}
         }
         
-        $sLimit = null;
         if (isset($params['iDisplayStart']) && $params['iDisplayLength'] != '-1')
         {
         	$select->limit($params['iDisplayStart'], $params['iDisplayLength']);
         }        
        
-        return $select->query()->fetchAll();
+        return $select->query()->select();
     }
 }    
