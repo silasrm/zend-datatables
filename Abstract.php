@@ -78,20 +78,25 @@ abstract class Application_Model_Abstract
      *    - sSearch: valor da busca geral
      *    - bSearchable_*: mapeador do contador das colunas com filtragem individual, se o valor é true, é pra filtrar
      *    - sSearch_*: valor da busca no campo individual
+     * @param  string $pk nome da coluna de Primary Key
      * @param  array $cols nome das colunas que irão retornar e serão colunas no próprio datatables
      * @return  array coleção de dados de informações necessitadas para o funcionamento correto do DataTables
      */
-    public function dataTables(array $params = null, $cols)
+    public function dataTables(array $params, $pk, $cols)
     {
         // Adiciona o SQL_CALC_FOUND_ROWS antes da primeira coluna;
         $_cols = $cols;
-        $_cols[0] = 'SQL_CALC_FOUND_ROWS ' . $_cols[0];
+        $_cols = array_merge(
+            array(new Zend_Db_Expr('SQL_CALC_FOUND_ROWS ' . $pk)),
+            $_cols
+        );
+        // $_cols[0] = 'SQL_CALC_FOUND_ROWS ' . $_cols[0];
 
         $select = $this->getDbTable()->select();
         $select->from($this->getDbTable()->getName(), $_cols);
 
         // Filtro geral
-        if( $params['sSearch'] != "" )
+        if( isset($params['sSearch']) && $params['sSearch'] != "" )
         {
             $where = array();
             for( $i=0 ; $i<count($cols) ; $i++ )
@@ -108,7 +113,10 @@ abstract class Application_Model_Abstract
         // Filtro individual
         for( $i=0 ; $i<count($cols) ; $i++ )
         {
-            if( $params['bSearchable_'.$i] == "true" && $params['sSearch_'.$i] != '' )
+            if( isset($params['bSearchable_'.$i])
+                && isset($params['sSearch_'.$i])
+                && $params['bSearchable_'.$i] == "true"
+                && $params['sSearch_'.$i] != '' )
             {
                 $select->where($cols[$i] . ' LIKE ?', '%' . $params['sSearch_'.$i] . '%');
             }
@@ -129,20 +137,21 @@ abstract class Application_Model_Abstract
         // Cria o limit
         if (isset($params['iDisplayStart']) && $params['iDisplayLength'] != '-1')
         {
-            $select->limit($params['iDisplayStart'], $params['iDisplayLength']);
+            $select->limit($params['iDisplayLength'], $params['iDisplayStart']);
         }
 
         // Dados filtrados com limite
         $dados = $select->query()->fetchAll();
+
 
         // Pega o total de dados filtrados geral, sem o limite
         $selectFoundRows = $this->getDb()->query('SELECT FOUND_ROWS()');
         $totalFiltrado = $selectFoundRows->fetch();
 
         // Pega o total de dados sem filtros
-        $total = $this->count();
+        $total = $this->count(null, $pk);
 
-        $output = array(
+        return array(
             "sEcho" => intval($params['sEcho']),
             "iTotalRecords" => $total,
             "iTotalDisplayRecords" => $totalFiltrado,
@@ -162,7 +171,7 @@ abstract class Application_Model_Abstract
                 $linha[] = $r[$cols[$i]];
             }
 
-            $return[] = $linha;
+            $retorno[] = $linha;
         }
 
         return $retorno;
