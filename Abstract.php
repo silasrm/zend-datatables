@@ -90,7 +90,6 @@ abstract class Application_Model_Abstract
             array(new Zend_Db_Expr('SQL_CALC_FOUND_ROWS ' . $pk)),
             $_cols
         );
-        // $_cols[0] = 'SQL_CALC_FOUND_ROWS ' . $_cols[0];
 
         $select = $this->getDbTable()->select();
         $select->from($this->getDbTable()->getName(), $_cols);
@@ -145,8 +144,9 @@ abstract class Application_Model_Abstract
 
 
         // Pega o total de dados filtrados geral, sem o limite
-        $selectFoundRows = $this->getDb()->query('SELECT FOUND_ROWS()');
-        $totalFiltrado = $selectFoundRows->fetch();
+        $selectFoundRows = $this->getDb()->query('SELECT FOUND_ROWS() as total');
+        $dadosFoundRows = $selectFoundRows->fetch();
+        $totalFiltrado = $dadosFoundRows['total'];
 
         // Pega o total de dados sem filtros
         $total = $this->count(null, $pk);
